@@ -1,0 +1,20 @@
+What you need to know before you dive in
+
+The biggest conceptual trap is this: “reader can see tag” is not the same as “reader can read useful payload.” MIFARE Plus EV1 can present as a backward-compatible card in some cases, but it also supports higher-security operation, and NXP’s public materials make clear that exact identification and behavior depend on the activation/protocol path.
+
+For your ProjectPlan, the research section should answer these questions first:
+
+What exactly does your tag expose before authentication?
+Capture UID, ATQA, SAK, and any GetVersion-style response you can obtain. NXP explicitly recommends chip-type identification procedures for distinguishing MIFARE variants.
+Is the tag acting like a Classic-compatible memory card, or like an ISO 14443-4 / APDU-speaking secure card?
+This determines whether your future library is mainly “sector/block reader + parser” or “low-level transceiver + authenticated command engine.”
+Are you dealing with standard NDEF mapping, or proprietary storage?
+AN1304 shows that MIFARE Classic / MIFARE Plus can store NDEF in a defined way, so “no NDEF” strongly suggests either proprietary layout or protected data rather than a dead end.
+Do you have any keys, issuer docs, or known defaults?
+Without keys or issuer knowledge, you should plan for identification and probing first, not guaranteed payload recovery. That is the main feasibility risk.
+Will the chosen Arduino library let you drop to raw PN532 commands when needed?
+Adafruit, Seeed, and Elechouse all give you a fast start, but your custom tag library should sit above the PN532 transport so you can swap reader modules later if needed.
+
+One hardware caution: NXP currently marks PN532 as not recommended for new designs and points new designs to PN7160, but for an Arduino proof-of-concept the PN532 ecosystem is still much easier because of mature examples, breakout boards, and community libraries.
+
+Next document should probably be ProjectPlan.txt with phases for research, bring-up, protocol identification, auth experiments, and custom-library design

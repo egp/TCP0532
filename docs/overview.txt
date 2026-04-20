@@ -1,0 +1,194 @@
+overview.txt
+
+Arduino NFC Reader Project Overview
+===================================
+
+Goal
+----
+Read and understand a specific NFC tag that TagInfo identifies as "MIFARE Plus EV1",
+using an Arduino plus an I2C-connected NFC reader, most likely a PN532 module.
+
+Bottom-line Feasibility
+-----------------------
+This project is feasible enough to justify a small hardware purchase and a research-first
+bring-up phase.
+
+What is very likely feasible:
+- Detect the tag
+- Read UID and low-level identification info
+- Confirm protocol family / chip type
+- Exchange low-level commands with the tag
+
+What may or may not be feasible:
+- Reading the application data actually stored on the tag
+
+Why that uncertainty exists:
+- "No NDEF records" does NOT mean the tag is unreadable.
+- It usually means the tag is not storing data in standard NFC Forum NDEF layout.
+- The useful data may instead be in a proprietary sector/block layout.
+- That data may also be protected by keys or by higher-security MIFARE Plus modes.
+
+Practical interpretation
+------------------------
+The likely first success is:
+1) detect tag
+2) identify it more precisely
+3) probe whether it behaves like a Classic-compatible layout or a more secure APDU/AES path
+4) only then design a custom parser/library
+
+Important caveat
+----------------
+Even if the Arduino + PN532 can talk to the tag, protected sectors may remain unreadable
+without the proper keys or issuer-specific knowledge.
+
+Recommended Hardware Direction
+------------------------------
+Start with a PN532-based module that supports I2C and already has Arduino examples.
+
+Best polished options:
+- DFRobot Gravity UART & I2C NFC Module
+- Adafruit PN532 breakout
+- Adafruit PN532 shield
+
+Budget / clone option:
+- Elechouse PN532 V3 style modules
+
+Recommended Library Starting Point
+----------------------------------
+Use an existing PN532 Arduino library for transport/bring-up, then build your own higher-level
+library on top once the tag behavior is understood.
+
+Good starting libraries:
+- Adafruit-PN532
+- Seeed-Studio PN532
+- Elechouse PN532
+
+What "no NDEF" probably means
+-----------------------------
+TagInfo is telling you:
+- the chip/tag family is recognized
+- but the tag does not expose data in standard NDEF format
+
+That is consistent with:
+- proprietary application storage
+- sector/block-based storage
+- access conditions / authentication
+- MIFARE Plus security levels that differ from ordinary hobby examples
+
+What to learn before coding
+---------------------------
+1. Tag family basics
+   - ISO/IEC 14443A activation
+   - UID, ATQA, SAK
+   - difference between identification and reading application data
+
+2. MIFARE Plus EV1 operating modes
+   - backward-compatible / Classic-like mode
+   - higher-security modes
+   - possibility of AES-secured access
+
+3. PN532 capabilities and limits
+   - reader/writer mode
+   - I2C host interface
+   - supported command paths
+   - whether the library exposes the low-level calls you will need
+
+4. Storage model questions
+   - is the data stored as NDEF or not
+   - if not, is it sector/block based
+   - are there MAD/TLV structures or a fully proprietary layout
+   - are keys known, default, unknown, or diversified
+
+5. Legal / operational boundary
+   - only read tags you own or are authorized to analyze
+   - do not assume application data is meant to be openly readable
+
+Suggested Bring-Up Milestones
+-----------------------------
+Phase 1:
+- buy reader
+- wire over I2C
+- confirm reader is alive
+
+Phase 2:
+- detect tag repeatedly and reliably
+- dump UID / ATQA / SAK
+- attempt precise identification such as GetVersion if supported
+
+Phase 3:
+- determine which protocol path applies
+- Classic-compatible block reads?
+- ISO14443-4 / APDU-style exchanges?
+- auth failures vs readable sectors
+
+Phase 4:
+- record what TagInfo says
+- correlate Arduino observations with phone observations
+- infer the likely storage model
+
+Phase 5:
+- build a small custom library for your tag family / layout
+- keep transport (PN532) separate from tag-specific decoding
+
+Documentation / Reading Links
+-----------------------------
+MIFARE Plus family overview:
+https://www.nxp.com/products/rfid-nfc/mifare-hf/mifare-plus%3AMC_57609
+
+MIFARE product portal:
+https://www.mifare.net/
+
+MIFARE Plus EV1 short data sheet (public mirror):
+https://www.mouser.com/datasheet/2/302/MF1P_H_X1Y1_SDS-1501408.pdf
+
+MIFARE type identification procedure (NXP AN10833):
+https://www.nxp.com/docs/en/application-note/AN10833.pdf
+
+Storing NDEF in MIFARE Classic / MIFARE Plus (AN1304, public mirror):
+https://amal.net/wp-content/uploads/2012/11/AN1304.pdf
+
+PN532 product data sheet:
+https://www.nxp.com/docs/en/nxp/data-sheets/PN532_C1.pdf
+
+PN532 user manual:
+https://www.nxp.com/docs/en/user-guide/141520.pdf
+
+PN532 product page:
+https://www.nxp.com/products/rfid-nfc/nfc-hf/nfc-readers/nfc-integrated-solution%3APN5321A3HN
+
+Hardware Links
+--------------
+DFRobot Gravity UART & I2C NFC Module product:
+https://www.dfrobot.com/product-1917.html
+
+DFRobot Gravity UART & I2C NFC Module wiki:
+https://wiki.dfrobot.com/dfr0231-h/
+
+Adafruit PN532 breakout product:
+https://www.adafruit.com/product/364
+
+Adafruit PN532 shield product:
+https://www.adafruit.com/product/789
+
+Adafruit PN532 guide:
+https://learn.adafruit.com/adafruit-pn532-rfid-nfc
+
+Elechouse PN532 module page:
+https://www.elechouse.com/elechouse/images/product/PN532%20NFC%20Module/
+
+Library Links
+-------------
+Adafruit PN532 library:
+https://github.com/adafruit/Adafruit-PN532
+
+Seeed PN532 library:
+https://github.com/Seeed-Studio/PN532
+
+Elechouse PN532 library:
+https://github.com/elechouse/pn532
+
+Initial Recommendation
+----------------------
+Buy one good I2C-friendly PN532 board first, preferably the DFRobot Gravity module or an
+Adafruit PN532 board, and treat the first milestone as a research/bring-up effort rather
+than assuming immediate access to the tag's protected application data.
