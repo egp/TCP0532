@@ -1,4 +1,4 @@
-# Makefile v5
+# Makefile v6
 ARDUINO_CLI ?= arduino-cli
 CXX ?= c++
 CXXFLAGS ?= -std=c++17 -Wall -Wextra -Werror -pedantic
@@ -17,6 +17,7 @@ ALL_FQBNS := \
 
 HOST_TEST_SOURCES := $(sort $(wildcard tests/host/test_*.cpp))
 HOST_TEST_SUPPORT_SOURCES := $(sort $(wildcard tests/host/test_support/*.cpp))
+HOST_LIBRARY_SOURCES := $(sort $(wildcard src/*.cpp))
 HOST_TEST_BINS := $(patsubst tests/host/%.cpp,$(HOST_BUILD_DIR)/%,$(HOST_TEST_SOURCES))
 
 .PHONY: help compile compile-all test clean core-update core-install-avr core-install-renesas
@@ -63,7 +64,7 @@ test: $(HOST_TEST_BINS)
 		"$$test_bin"; \
 	done
 
-$(HOST_BUILD_DIR)/test_%: tests/host/test_%.cpp src/TCP0532.cpp $(HOST_TEST_SUPPORT_SOURCES)
+$(HOST_BUILD_DIR)/test_%: tests/host/test_%.cpp $(HOST_LIBRARY_SOURCES) $(HOST_TEST_SUPPORT_SOURCES)
 	@mkdir -p "$(HOST_BUILD_DIR)"
 	@$(CXX) $(CXXFLAGS) \
 		-I./src \
@@ -82,4 +83,4 @@ core-install-avr:
 
 core-install-renesas:
 	$(ARDUINO_CLI) core install arduino:renesas_uno
-# Makefile v5
+# Makefile v6
