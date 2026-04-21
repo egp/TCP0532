@@ -1,5 +1,8 @@
-// src/TCP0532.cpp v8
+// src/TCP0532.cpp v10
 #include "TCP0532.h"
+
+#include "TCP0532Frame.h"
+#include "TCP0532Parse.h"
 
 TCP0532::TCP0532()
     : bus_(nullptr),
@@ -62,6 +65,79 @@ bool TCP0532::wake() {
   return true;
 }
 
+bool TCP0532::getFirmwareVersion(uint32_t& version) {
+  version = 0;
+
+  if (bus_ == nullptr) {
+    setError("not begun");
+    return false;
+  }
+
+  const uint8_t commandPayload[] = {0x02};
+  uint8_t commandFrame[9] = {};
+  size_t commandFrameLen = 0;
+  if (!tcp0532BuildHostFrame(commandPayload, sizeof(commandPayload), commandFrame,
+                             sizeof(commandFrame), &commandFrameLen)) {
+    setError("frame build failed");
+    return false;
+  }
+
+#if defined(ARDUINO)
+  const bool writeOk = true;
+#else
+  const bool writeOk = tcp0532HostWrite(*bus_, i2cAddress_, commandFrame, commandFrameLen);
+#endif
+  if (!writeOk) {
+    setError("write failed");
+    return false;
+  }
+
+  uint8_t ackFrame[6] = {};
+#if defined(ARDUINO)
+  const bool ackReadOk = true;
+#else
+  const bool ackReadOk = tcp0532HostRead(*bus_, i2cAddress_, ackFrame, sizeof(ackFrame));
+#endif
+  if (!ackReadOk || !tcp0532IsAckFrame(ackFrame, sizeof(ackFrame))) {
+    setError("ack failed");
+    return false;
+  }
+
+  uint8_t responseFrame[13] = {};
+#if defined(ARDUINO)
+  const bool responseReadOk = true;
+#else
+  const bool responseReadOk =
+      tcp0532HostRead(*bus_, i2cAddress_, responseFrame, sizeof(responseFrame));
+#endif
+  if (!responseReadOk) {
+    setError("response failed");
+    return false;
+  }
+
+  uint8_t payload[6] = {};
+  size_t payloadLen = 0;
+  if (!tcp0532ParseResponseFrame(responseFrame, sizeof(responseFrame), payload, sizeof(payload),
+                                 &payloadLen)) {
+    setError("response failed");
+    return false;
+  }
+
+  if (payloadLen != 6 || payload[0] != 0xD5 || payload[1] != 0x03) {
+    setError("response failed");
+    return false;
+  }
+
+  version = (static_cast<uint32_t>(payload[2]) << 24) |
+            (static_cast<uint32_t>(payload[3]) << 16) |
+            (static_cast<uint32_t>(payload[4]) << 8) |
+            static_cast<uint32_t>(payload[5]);
+
+  lastError_ = nullptr;
+  ready_ = true;
+  return true;
+}
+
 bool TCP0532::isReady() const {
   return ready_;
 }
@@ -78,4 +154,4 @@ void TCP0532::setError(const char* message) {
   lastError_ = message;
   ready_ = false;
 }
-// src/TCP0532.cpp v8
+// src/TCP0532.cpp v10
