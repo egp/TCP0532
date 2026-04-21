@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  compile-examples:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        fqbn:
+          - arduino:avr:uno
+          - arduino:renesas_uno:minima
+          - arduino:renesas_uno:unor4wifi
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Install Arduino CLI
+        run: |
+          set -euo pipefail
+          curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | BINDIR=/usr/local/bin sh
+          arduino-cli version
+
+      - name: Update core index
+        run: arduino-cli core update-index
+
+      - name: Install required cores
+        run: |
+          arduino-cli core install arduino:avr
+          arduino-cli core install arduino:renesas_uno
+
+      - name: Compile ReaderAlive
+        run: |
+          arduino-cli compile \
+            --fqbn "${{ matrix.fqbn }}" \
+            --library . \
+            examples/ReaderAlive

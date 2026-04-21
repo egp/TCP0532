@@ -1,0 +1,24 @@
+# macOS
+.DS_Store
+
+# Arduino / build artifacts
+build/
+*.elf
+*.hex
+*.bin
+*.map
+*.eep
+*.lst
+
+# Arduino CLI config/cache
+.arduinoIDE/
+arduino-cli.yaml
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Local development flag for Arduino IDE examples
+.development

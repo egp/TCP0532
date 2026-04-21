@@ -1,0 +1,410 @@
+ProjectPlan.txt
+
+Arduino NFC Tag Investigation Project Plan
+==========================================
+
+Project Title
+-------------
+Investigate and Read a MIFARE Plus EV1 NFC Tag with Arduino
+
+Project Objective
+-----------------
+Build a small Arduino-based reader setup that can reliably detect, identify, and
+characterize a specific MIFARE Plus EV1 tag, then determine whether its useful
+application data can be read and parsed with authorized access.
+
+Known Starting Facts
+--------------------
+From iPhone TagInfo, the tag appears to be:
+- Vendor: NXP
+- Family: MIFARE
+- IC Type: Plus
+- IC Name: EV1
+- UID: 0x04241E12261290
+- Memory: 2048 bytes
+- Technologies: MIFARE, ISO14443-3, ISO14443-4
+- Major Version: 0x11
+- Minor Version: 0x00
+
+Working Interpretation
+----------------------
+This appears to be a MIFARE Plus EV1 2K-class tag with ISO14443-4 capability.
+That is important because this project should not be approached as only a
+"MIFARE Classic block reader" project. The eventual solution may need:
+- low-level MIFARE-style probing
+- ISO14443-4 command exchange
+- possible authentication handling
+- possible proprietary application layout parsing
+
+Primary Risk
+------------
+The main risk is NOT whether the Arduino can detect the tag.
+The main risk is whether the useful application data is readable with keys,
+permissions, and protocol access that are available to me.
+
+Non-Goals
+---------
+- Do not assume the tag contains NDEF
+- Do not assume a stock Arduino NFC demo can read the useful payload
+- Do not begin by writing a custom parser before the transport/protocol behavior is known
+
+Overall Strategy
+----------------
+1. Acquire the right reader hardware
+2. Bring up the reader over I2C
+3. Confirm reliable tag detection
+4. Gather identification and protocol-level facts
+5. Determine whether the tag behaves in a Classic-compatible path,
+   an ISO14443-4 path, or both
+6. Determine whether any readable memory/application data is accessible
+7. Only then build a tag-specific library or extend an existing PN532 library
+
+Hardware Acquisition Recommendation
+-----------------------------------
+Recommended first purchase:
+1. DFRobot Gravity UART & I2C NFC Module (PN532-based)
+
+Why this is the best first purchase:
+- Explicit I2C support
+- Explicit 3.3V / 5V controller support
+- Arduino-oriented docs
+- Good fit for quick bring-up without fighting board-level details
+
+Second choice:
+2. Adafruit PN532 breakout
+
+Why:
+- Strong documentation
+- Mature Arduino ecosystem
+- Good known baseline for experimentation
+
+Caution:
+- In I2C mode, the breakout requires external pull-ups on SDA/SCL
+- Slightly more setup friction than the DFRobot option if I want the simplest I2C start
+
+Third choice:
+3. Elechouse PN532 V3 module
+
+Why:
+- Common
+- Inexpensive
+- Frequently used in Arduino NFC projects
+
+Caution:
+- Module variants and clone variations are more likely
+- Documentation is older / less polished
+- Better as a budget or backup purchase than as the first choice
+
+What I should NOT optimize for yet:
+- Smallest price
+- Perfect Arduino library
+- Fancy NFC features not needed for the first experiments
+
+What I AM optimizing for:
+- Fastest reliable I2C bring-up
+- Easiest hardware debugging
+- Lowest friction path to raw reader access
+
+Proposed Purchase Decision
+--------------------------
+Buy exactly one module first:
+- Preferred: DFRobot Gravity UART & I2C NFC Module
+
+Optional backup purchase if I want to hedge:
+- Also buy one Adafruit PN532 breakout
+
+Reason for optional backup:
+- If one board has unexpected I2C quirks, the second board gives me a clean cross-check
+- It separates "tag problem" from "module problem"
+
+Research Tasks Before Implementation
+------------------------------------
+R1. Learn the protocol layers involved
+- ISO14443-3 activation basics
+- ISO14443-4 session basics
+- Difference between MIFARE family naming and actual command path
+- Difference between "tag identified" and "application data readable"
+
+R2. Learn MIFARE Plus EV1 operating ideas
+- What SL1 means at a practical level
+- What higher-security modes imply
+- Whether version / ATS / basic card information can be read without keys
+- What signs indicate a Classic-like access path versus a more secure path
+
+R3. Learn PN532 capabilities relevant to this project
+- Reader/writer mode
+- Raw command exchange support
+- How the host talks to the PN532 over I2C
+- Whether the chosen software base exposes low-level exchange primitives
+
+R4. Learn likely storage possibilities
+- NDEF mapping vs proprietary storage
+- Sector/block organization
+- Authentication requirements
+- Access bits / keys / issuer-specific layout
+
+R5. Define legal and practical boundaries
+- Only test on tags I own or am authorized to analyze
+- Do not assume that access-controlled application data is intended to be openly readable
+
+Implementation Plan: Phase Breakdown
+------------------------------------
+
+Phase 0 - Preparation
+---------------------
+Deliverables:
+- Reader hardware selected
+- Reading list collected
+- Initial notes file created
+- Decision made about host Arduino board
+
+Exit criteria:
+- I know exactly which PN532 module I am buying
+- I have links to the key docs
+- I have a place to log each observed behavior of the tag
+
+Phase 1 - Hardware Bring-Up
+---------------------------
+Tasks:
+- Connect the PN532 reader over I2C
+- Verify power and wiring
+- Verify the Arduino can communicate with the reader
+- Build the smallest possible "reader alive" sketch
+
+Deliverables:
+- A sketch that confirms the PN532 responds
+- Notes on wiring, supply voltage, and any pull-up requirements
+- Reproducible bring-up steps
+
+Exit criteria:
+- Reader is detected every time after reset
+- No unexplained wiring instability remains
+
+Phase 2 - Tag Detection and Identification
+------------------------------------------
+Tasks:
+- Poll for the target tag
+- Print UID
+- Capture all activation / identification data available from the reader/library
+- Attempt precise version and protocol characterization
+- Record the observed behavior with the specific target tag
+
+Deliverables:
+- UID dump
+- Identification log
+- Protocol notes
+- A repeatable "tag present / tag absent" demo sketch
+
+Exit criteria:
+- Tag is reliably detected
+- I can consistently reproduce the same identification output
+- I have enough data to classify the likely protocol path
+
+Phase 3 - Protocol Path Discovery
+---------------------------------
+Tasks:
+- Determine whether the tag is reachable via a Classic-compatible path
+- Determine whether ISO14443-4 command exchange is required or useful
+- Test low-level exchanges incrementally
+- Observe errors carefully and classify them:
+  - no response
+  - auth required
+  - unsupported command
+  - framing/protocol issue
+  - access denied
+
+Deliverables:
+- A short technical note describing the likely protocol path
+- A list of commands attempted and their outcomes
+- A go/no-go decision for memory-reading work
+
+Exit criteria:
+- I can say, with evidence, whether the path forward is:
+  A) Classic-like block access
+  B) ISO14443-4 / APDU-like access
+  C) mixed / uncertain / access-protected
+
+Phase 4 - Readability Assessment
+--------------------------------
+Tasks:
+- Identify any readable public/basic data
+- Determine whether memory/application data is accessible
+- If access fails, distinguish between:
+  - wrong command path
+  - missing auth
+  - protected sectors/files
+  - unsupported functionality in the software base
+
+Deliverables:
+- Readability matrix:
+  - detectable?
+  - identifiable?
+  - version-readable?
+  - public-data-readable?
+  - application-data-readable?
+- A documented risk assessment for the next phase
+
+Exit criteria:
+- I know whether it is worth investing in a custom tag library
+- I know whether lack of keys/auth is the blocker
+
+Phase 5 - Software Architecture for My Own Library
+--------------------------------------------------
+Goal:
+Create a clean separation between:
+1. PN532 transport / framing / low-level card exchange
+2. MIFARE Plus EV1 probe/auth/read logic
+3. Tag-specific application layout parser
+
+Recommended code structure:
+- pn532_transport/
+- mifare_plus_probe/
+- tag_reader/
+- examples/
+- test data / captured traces
+
+Design principle:
+Do NOT hardwire the tag-specific logic directly into the PN532 transport layer.
+
+Reason:
+If the reader hardware changes later, only the transport layer should need replacement.
+
+Phase 6 - Implement Minimum Custom Capability
+---------------------------------------------
+First custom capability should be narrow and testable.
+
+Suggested order:
+1. detect target tag
+2. verify it matches the expected family/version characteristics
+3. perform one controlled low-level identification exchange
+4. perform one minimal authorized or public read
+5. decode one small known field, if accessible
+
+Do not attempt:
+- full parser
+- write support
+- broad refactoring
+until a single reliable end-to-end read works
+
+Go / No-Go Checkpoints
+----------------------
+Checkpoint A - after hardware bring-up
+Question:
+Can the Arduino talk reliably to the PN532 over I2C?
+
+If no:
+- stop and fix hardware/wiring first
+
+Checkpoint B - after tag identification
+Question:
+Can the Arduino reliably detect and characterize the tag?
+
+If no:
+- stop and investigate reader config or board choice
+
+Checkpoint C - after protocol discovery
+Question:
+Do I understand whether the tag path is Classic-like, ISO14443-4, or protected?
+
+If no:
+- continue research and low-level probing before writing custom parsing code
+
+Checkpoint D - after readability assessment
+Question:
+Is there any accessible data path worth building a custom library around?
+
+If no:
+- stop before spending large amounts of time on parser design
+
+Initial Deliverables
+--------------------
+D1. notes/reader_setup.txt
+- wiring
+- module choice
+- Arduino board used
+- I2C details
+- any pull-up details
+- known-good bring-up steps
+
+D2. notes/tag_observations.txt
+- UID
+- TagInfo screenshots/transcription
+- repeated observations from Arduino tests
+- success/failure notes for each probe
+
+D3. sketches/Phase1_ReaderAlive.ino
+- minimum reader communication test
+
+D4. sketches/Phase2_DetectAndIdentify.ino
+- UID + identity dump
+
+D5. notes/protocol_path_assessment.txt
+- conclusion on likely access path
+
+Questions I Need Answered Before Going Deep
+-------------------------------------------
+1. Can I reliably communicate with the PN532 over I2C on my chosen Arduino?
+2. Does my chosen software base let me send sufficiently low-level commands?
+3. What exact identification/protocol evidence can I retrieve from the tag?
+4. Is any useful data readable without unknown keys?
+5. If not, is the blocker protocol, authentication, or permissions?
+
+Recommended Reading Packet
+--------------------------
+MIFARE Plus family overview:
+https://www.nxp.com/products/rfid-nfc/mifare-hf/mifare-plus%3AMC_57609
+
+MIFARE Plus EV1 short data sheet:
+https://www.mouser.com/datasheet/2/302/MF1P_H_X1Y1_SDS-1501408.pdf
+
+MIFARE type identification procedure:
+https://www.nxp.com/docs/en/application-note/AN10833.pdf
+
+MIFARE Classic / MIFARE Plus NDEF mapping note:
+https://amal.net/wp-content/uploads/2012/11/AN1304.pdf
+
+PN532 product page:
+https://www.nxp.com/products/rfid-nfc/nfc-hf/nfc-readers/nfc-integrated-solution%3APN5321A3HN
+
+PN532 data sheet:
+https://www.nxp.com/docs/en/nxp/data-sheets/PN532_C1.pdf
+
+PN532 user manual:
+https://www.nxp.com/docs/en/user-guide/141520.pdf
+
+Proposed Hardware Links
+-----------------------
+DFRobot Gravity UART & I2C NFC Module:
+https://www.dfrobot.com/product-1917.html
+https://wiki.dfrobot.com/dfr0231-h/
+
+Adafruit PN532 breakout:
+https://www.adafruit.com/product/364
+https://learn.adafruit.com/adafruit-pn532-rfid-nfc
+
+Elechouse PN532 V3:
+https://www.elechouse.com/elechouse/images/product/PN532%20NFC%20Module/
+https://www.elechouse.com/elechouse/images/product/PN532_module_V3/PN532_%20Manual_V3.pdf
+
+Acquisition Recommendation Summary
+----------------------------------
+Buy first:
+- DFRobot Gravity UART & I2C NFC Module
+
+Strong alternate:
+- Adafruit PN532 breakout
+
+Fallback / budget:
+- Elechouse PN532 V3
+
+Final Planning Note
+-------------------
+Do the research before implementation.
+The correct first milestone is NOT "read the whole tag."
+The correct first milestone is:
+- reader alive
+- tag detected
+- protocol understood
+- readability assessed
+
+Only then should implementation effort expand into a custom library.
