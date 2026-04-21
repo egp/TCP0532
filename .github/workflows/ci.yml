@@ -1,7 +1,3 @@
-
-### `.github/workflows/ci.yml`
-
-```yaml
 # .github/workflows/ci.yml v4
 name: CI
 
