@@ -1,29 +1,23 @@
+// src/TCP0532.cpp v3
 #include "TCP0532.h"
 
 TCP0532::TCP0532()
-    : wire_(nullptr), i2cAddress_(TCP0532_DEFAULT_I2C_ADDRESS), lastError_(nullptr), ready_(false) {}
+    : bus_(nullptr),
+      i2cAddress_(TCP0532_DEFAULT_I2C_ADDRESS),
+      lastError_(nullptr),
+      ready_(false) {}
 
-bool TCP0532::begin(TwoWire& wire) {
-  wire_ = &wire;
-  ready_ = false;
+bool TCP0532::begin(BBI2C& bus, uint8_t address) {
+  bus_ = &bus;
+  i2cAddress_ = address;
   lastError_ = nullptr;
-
-  if (!configureI2C(i2cAddress_)) {
-    return false;
-  }
-
   ready_ = true;
   return true;
 }
 
 bool TCP0532::configureI2C(uint8_t address) {
-  if (address == 0) {
-    setError("invalid I2C address");
-    return false;
-  }
-
   i2cAddress_ = address;
-  return true;
+  return false;  // intentional stub for cycle 2
 }
 
 bool TCP0532::isReady() const {
@@ -42,3 +36,4 @@ void TCP0532::setError(const char* message) {
   lastError_ = message;
   ready_ = false;
 }
+// src/TCP0532.cpp v3
