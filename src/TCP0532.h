@@ -1,4 +1,4 @@
-// src/TCP0532.h v3
+// src/TCP0532.h v4
 #pragma once
 
 #if defined(ARDUINO)
@@ -8,6 +8,7 @@
 #include <stdint.h>
 struct BBI2C;
 bool tcp0532HostBeginBus(BBI2C& bus);
+bool tcp0532HostWakeDevice(BBI2C& bus, uint8_t address);
 #endif
 
 static constexpr uint8_t TCP0532_DEFAULT_I2C_ADDRESS = 0x24;
@@ -18,6 +19,7 @@ class TCP0532 {
 
   bool begin(BBI2C& bus, uint8_t address = TCP0532_DEFAULT_I2C_ADDRESS);
   bool configureI2C(uint8_t address = TCP0532_DEFAULT_I2C_ADDRESS);
+  bool wake();
 
   bool isReady() const;
   const char* lastError() const;
@@ -31,4 +33,4 @@ class TCP0532 {
   const char* lastError_;
   bool ready_;
 };
-// src/TCP0532.h v3
+// src/TCP0532.h v4

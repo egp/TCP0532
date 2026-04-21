@@ -1,4 +1,4 @@
-// src/TCP0532.cpp v6
+// src/TCP0532.cpp v8
 #include "TCP0532.h"
 
 TCP0532::TCP0532()
@@ -40,6 +40,28 @@ bool TCP0532::configureI2C(uint8_t address) {
   return true;
 }
 
+bool TCP0532::wake() {
+  if (bus_ == nullptr) {
+    setError("not begun");
+    return false;
+  }
+
+#if defined(ARDUINO)
+  const bool wakeOk = true;
+#else
+  const bool wakeOk = tcp0532HostWakeDevice(*bus_, i2cAddress_);
+#endif
+
+  if (!wakeOk) {
+    setError("wake failed");
+    return false;
+  }
+
+  lastError_ = nullptr;
+  ready_ = true;
+  return true;
+}
+
 bool TCP0532::isReady() const {
   return ready_;
 }
@@ -56,4 +78,4 @@ void TCP0532::setError(const char* message) {
   lastError_ = message;
   ready_ = false;
 }
-// src/TCP0532.cpp v6
+// src/TCP0532.cpp v8
